@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="rollpix" translate="label" sortOrder="400">
+            <label>Rollpix</label>
+        </tab>
+        <section id="rollpix_qrlanding" translate="label" sortOrder="900"
+                 showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>QR Landing</label>
+            <tab>rollpix</tab>
+            <resource>Rollpix_QrLanding::config</resource>
+            <group id="general" translate="label" type="text" sortOrder="10"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General Settings</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Module</label>
+                    <comment>Enable or disable QR Landing functionality for this store view.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="tracking_enabled" translate="label comment" type="select" sortOrder="20"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable Tracking</label>
+                    <comment>When enabled, QR scans will be recorded in the visits table.</comment>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                </field>
+                <field id="identifier_type" translate="label comment" type="select" sortOrder="30"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Identifier Type</label>
+                    <comment>Product identifier used in QR URLs.</comment>
+                    <source_model>Rollpix\QrLanding\Model\Config\Source\IdentifierType</source_model>
+                </field>
+            </group>
+            <group id="info" translate="label" type="text" sortOrder="100"
+                   showInDefault="1" showInWebsite="1" showInStore="0">
+                <label>Module Information</label>
+                <frontend_model>Rollpix\QrLanding\Block\Adminhtml\System\Config\ModuleInfo</frontend_model>
+            </group>
+        </section>
+    </system>
+</config>

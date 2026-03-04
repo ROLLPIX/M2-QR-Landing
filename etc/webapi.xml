@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <route url="/V1/rollpix-qr/status" method="GET">
+        <service class="Rollpix\QrLanding\Api\StatusInterface" method="getStatus"/>
+        <resources>
+            <resource ref="Rollpix_QrLanding::status"/>
+        </resources>
+    </route>
+    <route url="/V1/rollpix-qr/report" method="GET">
+        <service class="Rollpix\QrLanding\Api\ReportInterface" method="getReport"/>
+        <resources>
+            <resource ref="Rollpix_QrLanding::report"/>
+        </resources>
+    </route>
+</routes>

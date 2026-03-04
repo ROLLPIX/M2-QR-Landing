@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="rollpix_qr_visits" resource="default" engine="innodb"
+           comment="Rollpix QR Landing - Visit Tracking">
+        <column xsi:type="int" name="entity_id" unsigned="true" nullable="false" identity="true"
+                comment="Entity ID"/>
+        <column xsi:type="smallint" name="store_id" unsigned="true" nullable="false"
+                comment="Store ID"/>
+        <column xsi:type="varchar" name="sku" nullable="false" length="64"
+                comment="Product SKU"/>
+        <column xsi:type="int" name="product_id" unsigned="true" nullable="true"
+                comment="Product ID"/>
+        <column xsi:type="varchar" name="visitor_ip" nullable="true" length="45"
+                comment="Visitor IP Address"/>
+        <column xsi:type="text" name="user_agent" nullable="true"
+                comment="Browser User Agent"/>
+        <column xsi:type="varchar" name="referer" nullable="true" length="512"
+                comment="HTTP Referer"/>
+        <column xsi:type="varchar" name="utm_source" nullable="true" length="255"
+                comment="UTM Source"/>
+        <column xsi:type="varchar" name="utm_medium" nullable="true" length="255"
+                comment="UTM Medium"/>
+        <column xsi:type="varchar" name="utm_campaign" nullable="true" length="255"
+                comment="UTM Campaign"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false"
+                default="CURRENT_TIMESTAMP" comment="Visit Timestamp"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id"/>
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="ROLLPIX_QR_VISITS_STORE_ID_STORE_STORE_ID"
+                    table="rollpix_qr_visits" column="store_id"
+                    referenceTable="store" referenceColumn="store_id"
+                    onDelete="CASCADE"/>
+        <index referenceId="ROLLPIX_QR_VISITS_STORE_ID_SKU" indexType="btree">
+            <column name="store_id"/>
+            <column name="sku"/>
+        </index>
+        <index referenceId="ROLLPIX_QR_VISITS_STORE_ID_CREATED_AT" indexType="btree">
+            <column name="store_id"/>
+            <column name="created_at"/>
+        </index>
+        <index referenceId="ROLLPIX_QR_VISITS_SKU" indexType="btree">
+            <column name="sku"/>
+        </index>
+    </table>
+</schema>

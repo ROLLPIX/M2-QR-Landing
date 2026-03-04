@@ -1,0 +1,26 @@
+{
+    "rollpix_qr_visits": {
+        "column": {
+            "entity_id": true,
+            "store_id": true,
+            "sku": true,
+            "product_id": true,
+            "visitor_ip": true,
+            "user_agent": true,
+            "referer": true,
+            "utm_source": true,
+            "utm_medium": true,
+            "utm_campaign": true,
+            "created_at": true
+        },
+        "index": {
+            "ROLLPIX_QR_VISITS_STORE_ID_SKU": true,
+            "ROLLPIX_QR_VISITS_STORE_ID_CREATED_AT": true,
+            "ROLLPIX_QR_VISITS_SKU": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "ROLLPIX_QR_VISITS_STORE_ID_STORE_STORE_ID": true
+        }
+    }
+}
