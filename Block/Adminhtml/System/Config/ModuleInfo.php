@@ -15,7 +15,7 @@ use Magento\Framework\View\Helper\Js;
 class ModuleInfo extends Fieldset
 {
     private const MODULE_NAME = 'Rollpix_QrLanding';
-    private const REPO_URL = 'https://github.com/ROLLPIX/M2-qr-landing';
+    private const REPO_URL = 'https://github.com/ROLLPIX/M2-QR-Landing';
 
     public function __construct(
         Context $context,

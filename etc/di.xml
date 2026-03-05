@@ -5,15 +5,4 @@
                 type="Rollpix\QrLanding\Model\Status"/>
     <preference for="Rollpix\QrLanding\Api\ReportInterface"
                 type="Rollpix\QrLanding\Model\Report"/>
-    <type name="Magento\Framework\App\RouterList">
-        <arguments>
-            <argument name="routerList" xsi:type="array">
-                <item name="rollpix_qr" xsi:type="array">
-                    <item name="class" xsi:type="string">Rollpix\QrLanding\Router\QrRouter</item>
-                    <item name="disable" xsi:type="boolean">false</item>
-                    <item name="sortOrder" xsi:type="string">40</item>
-                </item>
-            </argument>
-        </arguments>
-    </type>
 </config>

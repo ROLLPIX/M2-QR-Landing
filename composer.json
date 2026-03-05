@@ -2,7 +2,7 @@
     "name": "rollpix/module-qr-landing",
     "description": "QR code landing page for physical store products — redirects scans to PDP with UTM tracking",
     "type": "magento2-module",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "license": "MIT",
     "authors": [
         {
