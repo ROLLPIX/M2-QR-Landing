@@ -19,7 +19,7 @@ Magento 2 module that serves as a QR code landing page for physical store produc
 
 ```bash
 composer config repositories.rollpix-qr-landing vcs https://github.com/ROLLPIX/M2-qr-landing.git
-composer require rollpix/module-qr-landing:1.0.0
+composer require rollpix/module-qr-landing
 bin/magento module:enable Rollpix_QrLanding
 bin/magento setup:upgrade
 bin/magento cache:flush
@@ -44,16 +44,19 @@ bin/magento cache:flush
 | Enable Module | Yes/No | Yes | Store View |
 | Enable Tracking | Yes/No | Yes | Store View |
 | Identifier Type | Select | SKU | Store View |
+| Fallback URL | Text | `/` | Store View |
 
 ## What It Does
 
 ### QR Landing Controller (`/qr/{sku}`)
 
-- Receives QR scan via URL like `/qr/ABC123?track=true&utm_source=qr_store`
+- Receives QR scan via URL like `/qr/ABC123?utm_source=qr_store`
 - Validates that the module is enabled for the current store view
 - Resolves the SKU to a product and verifies it exists and is enabled
-- Records the visit in `rollpix_qr_visits` (if `track=true` and tracking is enabled)
+- Records the visit in `rollpix_qr_visits` (automatic when tracking is enabled, with 5-minute deduplication per IP+SKU)
+- Sanitizes all stored inputs (strip_tags + length truncation)
 - Redirects (302) to the product page, appending UTM parameters
+- If the product is not found, redirects to the **Fallback URL** (defaults to homepage); shows 404 if fallback is empty
 
 ### REST API — Status (`GET /V1/rollpix-qr/status`)
 
@@ -70,7 +73,7 @@ bin/magento cache:flush
 
 ## Behavior When Disabled
 
-- `/qr/{sku}` returns 404
+- `/qr/{sku}` returns 404 (or redirects to fallback URL if configured)
 - REST APIs still respond (they report `enabled: false`)
 - No visits are recorded
 
@@ -82,7 +85,7 @@ M2-qr-landing/                          ← repo root
 ├── composer.json
 ├── etc/
 │   ├── module.xml
-│   ├── di.xml                           (router + interface preferences)
+│   ├── di.xml                           (interface preferences)
 │   ├── acl.xml
 │   ├── config.xml
 │   ├── db_schema.xml                    (rollpix_qr_visits table)
@@ -91,6 +94,7 @@ M2-qr-landing/                          ← repo root
 │   ├── adminhtml/
 │   │   └── system.xml
 │   └── frontend/
+│       ├── di.xml                       (custom router registration)
 │       └── routes.xml
 ├── Api/
 │   ├── StatusInterface.php
@@ -134,8 +138,8 @@ M2-qr-landing/                          ← repo root
 curl -sI "https://yourstore.com/qr/EXISTING_SKU"
 # → HTTP 302 + Location: product URL
 
-# 2. Tracking records visit
-curl -sI "https://yourstore.com/qr/EXISTING_SKU?track=true&utm_source=test"
+# 2. Tracking records visit (automatic when tracking is enabled)
+curl -sI "https://yourstore.com/qr/EXISTING_SKU?utm_source=test"
 # → Check rollpix_qr_visits table
 
 # 3. Non-existent SKU returns 404

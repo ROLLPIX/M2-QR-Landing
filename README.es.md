@@ -19,7 +19,7 @@ Módulo de Magento 2 que sirve como landing page para códigos QR de productos e
 
 ```bash
 composer config repositories.rollpix-qr-landing vcs https://github.com/ROLLPIX/M2-qr-landing.git
-composer require rollpix/module-qr-landing:1.0.0
+composer require rollpix/module-qr-landing
 bin/magento module:enable Rollpix_QrLanding
 bin/magento setup:upgrade
 bin/magento cache:flush
@@ -44,16 +44,19 @@ bin/magento cache:flush
 | Habilitar Módulo | Sí/No | Sí | Store View |
 | Habilitar Tracking | Sí/No | Sí | Store View |
 | Tipo de Identificador | Select | SKU | Store View |
+| URL de Fallback | Texto | `/` | Store View |
 
 ## Qué Hace
 
 ### Controller QR Landing (`/qr/{sku}`)
 
-- Recibe el escaneo QR vía URL como `/qr/ABC123?track=true&utm_source=qr_tienda`
+- Recibe el escaneo QR vía URL como `/qr/ABC123?utm_source=qr_tienda`
 - Valida que el módulo esté habilitado para la store view actual
 - Resuelve el SKU a un producto y verifica que exista y esté habilitado
-- Registra la visita en `rollpix_qr_visits` (si `track=true` y el tracking está habilitado)
+- Registra la visita en `rollpix_qr_visits` (automático cuando el tracking está habilitado, con deduplicación de 5 minutos por IP+SKU)
+- Sanitiza todos los inputs almacenados (strip_tags + truncado por longitud)
 - Redirige (302) a la página del producto, agregando los parámetros UTM
+- Si el producto no se encuentra, redirige a la **URL de Fallback** (por defecto la homepage); muestra 404 si el fallback está vacío
 
 ### API REST — Status (`GET /V1/rollpix-qr/status`)
 
@@ -70,7 +73,7 @@ bin/magento cache:flush
 
 ## Comportamiento Cuando Está Deshabilitado
 
-- `/qr/{sku}` devuelve 404
+- `/qr/{sku}` devuelve 404 (o redirige a la URL de fallback si está configurada)
 - Las APIs REST siguen respondiendo (reportan `enabled: false`)
 - No se registran visitas
 
@@ -82,7 +85,7 @@ M2-qr-landing/                          ← raíz del repo
 ├── composer.json
 ├── etc/
 │   ├── module.xml
-│   ├── di.xml                           (router + preferences de interfaces)
+│   ├── di.xml                           (preferences de interfaces)
 │   ├── acl.xml
 │   ├── config.xml
 │   ├── db_schema.xml                    (tabla rollpix_qr_visits)
@@ -91,6 +94,7 @@ M2-qr-landing/                          ← raíz del repo
 │   ├── adminhtml/
 │   │   └── system.xml
 │   └── frontend/
+│       ├── di.xml                       (registro del router custom)
 │       └── routes.xml
 ├── Api/
 │   ├── StatusInterface.php
@@ -134,8 +138,8 @@ M2-qr-landing/                          ← raíz del repo
 curl -sI "https://tutienda.com/qr/SKU_EXISTENTE"
 # → HTTP 302 + Location: URL del producto
 
-# 2. Tracking registra visita
-curl -sI "https://tutienda.com/qr/SKU_EXISTENTE?track=true&utm_source=test"
+# 2. Tracking registra visita (automático cuando el tracking está habilitado)
+curl -sI "https://tutienda.com/qr/SKU_EXISTENTE?utm_source=test"
 # → Verificar tabla rollpix_qr_visits
 
 # 3. SKU inexistente devuelve 404

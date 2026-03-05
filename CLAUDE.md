@@ -41,7 +41,7 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 ├── composer.json
 ├── etc/
 │   ├── module.xml
-│   ├── di.xml                           (router + interface preferences)
+│   ├── di.xml                           (interface preferences)
 │   ├── acl.xml
 │   ├── config.xml
 │   ├── db_schema.xml
@@ -50,6 +50,7 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 │   ├── adminhtml/
 │   │   └── system.xml
 │   └── frontend/
+│       ├── di.xml                       (custom router registration)
 │       └── routes.xml
 ├── Api/
 │   ├── StatusInterface.php
@@ -107,7 +108,7 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 | utm_campaign | VARCHAR(255) | |
 | created_at | TIMESTAMP DEFAULT CURRENT_TIMESTAMP | Momento del escaneo |
 
-**Índices**: (store_id, sku), (store_id, created_at), (sku)
+**Índices**: (store_id, sku), (store_id, created_at), (sku), (visitor_ip, sku, created_at)
 
 ## Configuración Admin
 
@@ -118,6 +119,7 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 | Habilitar módulo | Yes/No | Yes | Store View | rollpix_qrlanding/general/enabled |
 | Habilitar tracking | Yes/No | Yes | Store View | rollpix_qrlanding/general/tracking_enabled |
 | Tipo de identificador | Select (sku) | SKU | Store View | rollpix_qrlanding/general/identifier_type |
+| URL de fallback | Text | `/` | Store View | rollpix_qrlanding/general/fallback_url |
 
 ## Endpoints REST (webapi.xml)
 
@@ -125,7 +127,7 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 - **Auth**: Bearer token (admin)
 - **ACL**: Rollpix_QrLanding::status
 - **Service**: Rollpix\QrLanding\Api\StatusInterface::getStatus
-- **Response**: `{ "enabled": bool, "tracking_enabled": bool, "module_version": "1.0.0", "identifier_type": "sku" }`
+- **Response**: `{ "enabled": bool, "tracking_enabled": bool, "module_version": "1.0.2", "identifier_type": "sku" }`
 
 ### GET /V1/rollpix-qr/report
 - **Auth**: Bearer token (admin)
@@ -147,15 +149,16 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 
 ## Lógica del Controller (QR Landing)
 
-**Ruta**: `/qr/{identifier}` (ej: `/qr/ABC123?track=true&utm_source=qr_tienda`)
+**Ruta**: `/qr/{identifier}` (ej: `/qr/ABC123?utm_source=qr_tienda`)
 
 1. Verificar módulo habilitado para store view actual → si no, 404
-2. Resolver identifier (SKU) a product_id via `ProductRepositoryInterface::get($sku)`
-3. Si producto no existe o no visible en store view → 404 / página de error amigable
-4. Si `track=true` AND tracking habilitado en config → INSERT en `rollpix_qr_visits`
-5. Obtener URL canónica del producto para la store view actual
-6. Construir redirect URL preservando UTM params (utm_source, utm_medium, utm_campaign, utm_term, utm_content)
-7. Redirect 302 a la URL del PDP con UTM params
+2. Validar longitud del identifier (máx 64 chars) → si excede, 404
+3. Resolver identifier (SKU) a product_id via `ProductRepositoryInterface::get($sku)`
+4. Si producto no existe o no visible en store view → redirect a fallback URL (o 404 si fallback vacío)
+5. Si tracking habilitado en config → INSERT en `rollpix_qr_visits` (con dedup 5 min por IP+SKU, inputs sanitizados)
+6. Obtener URL canónica del producto para la store view actual
+7. Construir redirect URL preservando UTM params (utm_source, utm_medium, utm_campaign, utm_term, utm_content)
+8. Redirect 302 a la URL del PDP con UTM params
 
 ## Convenciones de Código
 
@@ -172,9 +175,11 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 ## Testing
 
 - Verificar landing `/qr/SKU_EXISTENTE` redirige al PDP correcto
-- Verificar landing `/qr/SKU_INEXISTENTE` devuelve 404
+- Verificar landing `/qr/SKU_INEXISTENTE` redirige a fallback URL (o 404 si fallback vacío)
 - Verificar que con tracking deshabilitado, no se registra visita
-- Verificar que con tracking habilitado + track=true, se registra visita con UTM params
+- Verificar que con tracking habilitado, se registra visita automáticamente con UTM params
+- Verificar deduplicación: misma IP+SKU dentro de 5 minutos no genera visita duplicada
+- Verificar que identifiers de más de 64 chars son rechazados
 - Verificar endpoint /status devuelve estado correcto por store view
 - Verificar endpoint /report devuelve datos filtrados correctamente
 - Verificar que deshabilitar módulo por store view hace que /qr/SKU devuelva 404 en esa store pero funcione en otras
