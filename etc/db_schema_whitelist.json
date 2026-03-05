@@ -16,7 +16,8 @@
         "index": {
             "ROLLPIX_QR_VISITS_STORE_ID_SKU": true,
             "ROLLPIX_QR_VISITS_STORE_ID_CREATED_AT": true,
-            "ROLLPIX_QR_VISITS_SKU": true
+            "ROLLPIX_QR_VISITS_SKU": true,
+            "ROLLPIX_QR_VISITS_VISITOR_IP_SKU_CREATED_AT": true
         },
         "constraint": {
             "PRIMARY": true,

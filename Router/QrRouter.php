@@ -32,6 +32,11 @@ class QrRouter implements RouterInterface
 
         $identifier = $matches[1];
 
+        // Reject identifiers longer than the DB column allows (64 chars)
+        if (strlen($identifier) > 64) {
+            return null;
+        }
+
         // Skip if it looks like a standard Magento controller path (qr/qr/index)
         if (strtolower($identifier) === 'qr') {
             return null;

@@ -12,6 +12,7 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\ForwardFactory;
 use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
 use Magento\Store\Model\StoreManagerInterface;
 use Psr\Log\LoggerInterface;
 use Rollpix\QrLanding\Helper\Config;
@@ -28,6 +29,8 @@ class Index implements HttpGetActionInterface
         'utm_content',
     ];
 
+    private const DEDUP_WINDOW_MINUTES = 5;
+
     public function __construct(
         private readonly RequestInterface $request,
         private readonly Config $config,
@@ -37,6 +40,7 @@ class Index implements HttpGetActionInterface
         private readonly VisitResource $visitResource,
         private readonly ForwardFactory $forwardFactory,
         private readonly RedirectFactory $redirectFactory,
+        private readonly RemoteAddress $remoteAddress,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -57,17 +61,16 @@ class Index implements HttpGetActionInterface
         try {
             $product = $this->productRepository->get($identifier, false, $storeId);
         } catch (NoSuchEntityException $e) {
-            return $this->forwardFactory->create()->forward('noroute');
+            return $this->handleNotFound();
         }
 
         // Verify product is visible in current store
         if ((int) $product->getStatus() !== \Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED) {
-            return $this->forwardFactory->create()->forward('noroute');
+            return $this->handleNotFound();
         }
 
-        // Track visit if enabled
-        $shouldTrack = $this->request->getParam('track') === 'true';
-        if ($shouldTrack && $this->config->isTrackingEnabled()) {
+        // Track visit if tracking is enabled in config
+        if ($this->config->isTrackingEnabled()) {
             $this->recordVisit($storeId, $identifier, (int) $product->getId());
         }
 
@@ -90,17 +93,24 @@ class Index implements HttpGetActionInterface
     private function recordVisit(int $storeId, string $sku, int $productId): void
     {
         try {
+            $visitorIp = (string) $this->remoteAddress->getRemoteAddress();
+
+            // Deduplicate: skip if same IP+SKU visited within the last N minutes
+            if ($this->isRecentVisit($storeId, $sku, $visitorIp)) {
+                return;
+            }
+
             $visit = $this->visitFactory->create();
             $visit->setData([
                 'store_id' => $storeId,
                 'sku' => $sku,
                 'product_id' => $productId,
-                'visitor_ip' => $this->request->getServer('REMOTE_ADDR', ''),
-                'user_agent' => $this->request->getServer('HTTP_USER_AGENT', ''),
-                'referer' => $this->request->getServer('HTTP_REFERER', ''),
-                'utm_source' => $this->request->getParam('utm_source', ''),
-                'utm_medium' => $this->request->getParam('utm_medium', ''),
-                'utm_campaign' => $this->request->getParam('utm_campaign', ''),
+                'visitor_ip' => mb_substr($visitorIp, 0, 45),
+                'user_agent' => mb_substr(strip_tags((string) $this->request->getServer('HTTP_USER_AGENT', '')), 0, 512),
+                'referer' => mb_substr(strip_tags((string) $this->request->getServer('HTTP_REFERER', '')), 0, 512),
+                'utm_source' => mb_substr(strip_tags((string) $this->request->getParam('utm_source', '')), 0, 255),
+                'utm_medium' => mb_substr(strip_tags((string) $this->request->getParam('utm_medium', '')), 0, 255),
+                'utm_campaign' => mb_substr(strip_tags((string) $this->request->getParam('utm_campaign', '')), 0, 255),
             ]);
             $this->visitResource->save($visit);
         } catch (\Exception $e) {
@@ -110,6 +120,35 @@ class Index implements HttpGetActionInterface
                 'error' => $e->getMessage(),
             ]);
         }
+    }
+
+    private function isRecentVisit(int $storeId, string $sku, string $ip): bool
+    {
+        $connection = $this->visitResource->getConnection();
+        $tableName = $this->visitResource->getMainTable();
+        $threshold = date('Y-m-d H:i:s', time() - self::DEDUP_WINDOW_MINUTES * 60);
+
+        $select = $connection->select()
+            ->from($tableName, ['entity_id'])
+            ->where('store_id = ?', $storeId)
+            ->where('sku = ?', $sku)
+            ->where('visitor_ip = ?', $ip)
+            ->where('created_at >= ?', $threshold)
+            ->limit(1);
+
+        return (bool) $connection->fetchOne($select);
+    }
+
+    private function handleNotFound(): \Magento\Framework\Controller\ResultInterface
+    {
+        $fallbackUrl = $this->config->getFallbackUrl();
+        if ($fallbackUrl !== '') {
+            $redirect = $this->redirectFactory->create();
+            $redirect->setUrl($fallbackUrl);
+            $redirect->setHttpResponseCode(302);
+            return $redirect;
+        }
+        return $this->forwardFactory->create()->forward('noroute');
     }
 
     /**

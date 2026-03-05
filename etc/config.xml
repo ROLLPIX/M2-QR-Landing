@@ -7,6 +7,7 @@
                 <enabled>1</enabled>
                 <tracking_enabled>1</tracking_enabled>
                 <identifier_type>sku</identifier_type>
+                <fallback_url>/</fallback_url>
             </general>
         </rollpix_qrlanding>
     </default>

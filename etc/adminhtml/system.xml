@@ -31,6 +31,11 @@
                     <comment>Product identifier used in QR URLs.</comment>
                     <source_model>Rollpix\QrLanding\Model\Config\Source\IdentifierType</source_model>
                 </field>
+                <field id="fallback_url" translate="label comment" type="text" sortOrder="40"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Fallback URL</label>
+                    <comment>Redirect here when a scanned product is not found. Use "/" for homepage or a relative/absolute URL. Leave empty to show 404.</comment>
+                </field>
             </group>
             <group id="info" translate="label" type="text" sortOrder="100"
                    showInDefault="1" showInWebsite="1" showInStore="0">

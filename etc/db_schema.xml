@@ -43,5 +43,10 @@
         <index referenceId="ROLLPIX_QR_VISITS_SKU" indexType="btree">
             <column name="sku"/>
         </index>
+        <index referenceId="ROLLPIX_QR_VISITS_VISITOR_IP_SKU_CREATED_AT" indexType="btree">
+            <column name="visitor_ip"/>
+            <column name="sku"/>
+            <column name="created_at"/>
+        </index>
     </table>
 </schema>
