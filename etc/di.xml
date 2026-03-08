@@ -5,4 +5,6 @@
                 type="Rollpix\QrLanding\Model\Status"/>
     <preference for="Rollpix\QrLanding\Api\ReportInterface"
                 type="Rollpix\QrLanding\Model\Report"/>
+    <preference for="Rollpix\QrLanding\Api\VisitsInterface"
+                type="Rollpix\QrLanding\Model\Visits"/>
 </config>

@@ -13,4 +13,10 @@
             <resource ref="Rollpix_QrLanding::report"/>
         </resources>
     </route>
+    <route url="/V1/rollpix-qr/visits" method="GET">
+        <service class="Rollpix\QrLanding\Api\VisitsInterface" method="getVisits"/>
+        <resources>
+            <resource ref="Rollpix_QrLanding::report"/>
+        </resources>
+    </route>
 </routes>

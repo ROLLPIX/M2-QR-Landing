@@ -72,11 +72,12 @@ class Report implements ReportInterface
             ];
         }
 
-        // --- Daily: aggregated by date ---
+        // --- Daily: aggregated by date (with unique product count) ---
         $dailySelect = $connection->select()
             ->from($tableName, [
                 'date' => new Expression('DATE(created_at)'),
                 'count' => new Expression('COUNT(*)'),
+                'unique_products' => new Expression('COUNT(DISTINCT sku)'),
             ])
             ->where('store_id = ?', $storeId)
             ->group(new Expression('DATE(created_at)'))
@@ -91,6 +92,7 @@ class Report implements ReportInterface
             $daily[] = [
                 'date' => $row['date'],
                 'count' => (int) $row['count'],
+                'unique_products' => (int) $row['unique_products'],
             ];
         }
 
