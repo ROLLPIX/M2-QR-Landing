@@ -11,7 +11,7 @@ Módulo de Magento 2 que sirve como landing page para códigos QR de productos e
 | Requisito | Versión |
 |---|---|
 | PHP | 8.1 \| 8.2 \| 8.3 |
-| Magento | 2.4.7 \| 2.4.7-p1~p4 \| 2.4.8 |
+| Magento | 2.4.5 – 2.4.8 |
 
 ## Instalación
 
@@ -50,12 +50,24 @@ bin/magento cache:flush
 
 ### Controller QR Landing (`/qr/{sku}`)
 
-- Recibe el escaneo QR vía URL como `/qr/ABC123?utm_source=qr_tienda`
+- Recibe el escaneo QR vía URL como `/qr/ABC123?qr_source=qr_tienda` (o `utm_source`)
 - Valida que el módulo esté habilitado para la store view actual
-- Resuelve el SKU a un producto y verifica que exista y esté habilitado
+- Resuelve el SKU a un producto y verifica que exista, esté habilitado, sea visible individualmente y esté asignado al website
 - Registra la visita en `rollpix_qr_visits` (automático cuando el tracking está habilitado, con deduplicación de 5 minutos por IP+SKU)
 - Sanitiza todos los inputs almacenados (strip_tags + truncado por longitud)
 - Redirige (302) a la página del producto, agregando los parámetros UTM
+
+### Parámetros de seguimiento: `qr_*` y `utm_*`
+
+Detrás del Varnish de Magento, los `utm_*` **no llegan al módulo**: el VCL estándar los borra de la URL antes
+de pasarla a PHP. Por eso el módulo acepta los mismos campos con prefijo `qr_`:
+
+| Se manda | Se guarda y se reenvía como |
+|---|---|
+| `qr_source`, `qr_medium`, `qr_campaign`, `qr_term`, `qr_content` | `utm_source`, `utm_medium`, … |
+
+Si llegan los dos, gana `utm_*`. **Para QR y links nuevos, usar `qr_*`.** La redirección siempre sale con
+`utm_*`, que el navegador conserva y Google Analytics lee.
 - Si el producto no se encuentra, redirige a la **URL de Fallback** (por defecto la homepage); muestra 404 si el fallback está vacío
 
 ### API REST — Status (`GET /V1/rollpix-qr/status`)

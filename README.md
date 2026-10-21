@@ -11,7 +11,7 @@ Magento 2 module that serves as a QR code landing page for physical store produc
 | Requirement | Version |
 |---|---|
 | PHP | 8.1 \| 8.2 \| 8.3 |
-| Magento | 2.4.7 \| 2.4.7-p1~p4 \| 2.4.8 |
+| Magento | 2.4.5 – 2.4.8 |
 
 ## Installation
 
@@ -52,10 +52,17 @@ bin/magento cache:flush
 
 - Receives QR scan via URL like `/qr/ABC123?utm_source=qr_store`
 - Validates that the module is enabled for the current store view
-- Resolves the SKU to a product and verifies it exists and is enabled
+- Resolves the SKU to a product and verifies it exists, is enabled, is visible individually and belongs to the website
 - Records the visit in `rollpix_qr_visits` (automatic when tracking is enabled, with 5-minute deduplication per IP+SKU)
 - Sanitizes all stored inputs (strip_tags + length truncation)
 - Redirects (302) to the product page, appending UTM parameters
+
+### Tracking parameters: `qr_*` and `utm_*`
+
+Behind Magento's Varnish, `utm_*` **never reach the module**: the stock VCL strips them from the URL before
+PHP. The module therefore accepts the same fields with a `qr_` prefix (`qr_source`, `qr_medium`,
+`qr_campaign`, `qr_term`, `qr_content`), stores them as `utm_*` and re-emits them as `utm_*` on the redirect.
+If both arrive, `utm_*` wins. **Use `qr_*` for new QR codes and links.**
 - If the product is not found, redirects to the **Fallback URL** (defaults to homepage); shows 404 if fallback is empty
 
 ### REST API — Status (`GET /V1/rollpix-qr/status`)

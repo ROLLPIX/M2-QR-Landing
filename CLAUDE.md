@@ -12,7 +12,7 @@ El módulo también expone endpoints REST para que la Web App externa (Rollpix Q
 ## Stack y Compatibilidad
 
 - **PHP**: 8.1 | 8.2 | 8.3
-- **Magento**: 2.4.7 | 2.4.7-p1~p4 | 2.4.8
+- **Magento**: 2.4.5 – 2.4.8 (en uso: 2.4.5-p12 y 2.4.8-p5; `composer.json` pide `magento/framework: *`)
 - **Vendor/Module**: Rollpix/QrLanding
 - **Tipo Composer**: magento2-module
 - **Distribución**: RCPM (Rollpix Composer Package Manager)
@@ -149,16 +149,25 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 
 ## Lógica del Controller (QR Landing)
 
-**Ruta**: `/qr/{identifier}` (ej: `/qr/ABC123?utm_source=qr_tienda`)
+**Ruta**: `/qr/{identifier}` (ej: `/qr/ABC123?qr_source=qr_tienda` o `?utm_source=qr_tienda`)
 
 1. Verificar módulo habilitado para store view actual → si no, 404
 2. Validar longitud del identifier (máx 64 chars) → si excede, 404
 3. Resolver identifier (SKU) a product_id via `ProductRepositoryInterface::get($sku)`
-4. Si producto no existe o no visible en store view → redirect a fallback URL (o 404 si fallback vacío)
+4. Si el producto no existe, está deshabilitado, no es visible individualmente o no está asignado al website actual → redirect a fallback URL (o 404 si fallback vacío)
 5. Si tracking habilitado en config → INSERT en `rollpix_qr_visits` (con dedup 5 min por IP+SKU, inputs sanitizados)
 6. Obtener URL canónica del producto para la store view actual
-7. Construir redirect URL preservando UTM params (utm_source, utm_medium, utm_campaign, utm_term, utm_content)
+7. Resolver tracking: por cada campo (source, medium, campaign, term, content) se usa `utm_*` si llegó, si no el alias `qr_*`. Se guarda y se reemite siempre como `utm_*`
 8. Redirect 302 a la URL del PDP con UTM params
+
+### Por qué existen los alias `qr_*` (1.1.0)
+
+El VCL de Varnish que genera Magento borra `utm_*`, `gclid`, `fbclid`, etc. de `req.url` antes de pasar el
+request a PHP (para no fragmentar la caché). Detrás de Varnish, este controller nunca ve los `utm_*`: no los
+guarda y la redirección sale sin ellos, así que Google Analytics del sitio no ve la campaña. Los `qr_*` no
+están en esa lista: llegan a PHP, se guardan en las columnas `utm_*` y se reemiten como `utm_*` en el
+`Location`, donde el navegador los conserva y Analytics los lee. **No usar `qr_origin`**: `origin` sí está
+en la lista del VCL (la regex no está anclada). Ver `docs/decisions/001-alias-qr-para-varnish.md`.
 
 ## Convenciones de Código
 
@@ -178,6 +187,8 @@ M2-qr-landing/                          ← repo root (NO app/code/)
 - Verificar landing `/qr/SKU_INEXISTENTE` redirige a fallback URL (o 404 si fallback vacío)
 - Verificar que con tracking deshabilitado, no se registra visita
 - Verificar que con tracking habilitado, se registra visita automáticamente con UTM params
+- Verificar que `?qr_source=x` se guarda como utm_source y la redirección sale con `?utm_source=x`; con utm y qr a la vez, gana utm
+- Verificar que un producto no visible individualmente o fuera del website va al fallback
 - Verificar deduplicación: misma IP+SKU dentro de 5 minutos no genera visita duplicada
 - Verificar que identifiers de más de 64 chars son rechazados
 - Verificar endpoint /status devuelve estado correcto por store view
